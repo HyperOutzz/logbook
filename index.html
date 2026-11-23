@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0E14">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Logbook">
+<title>Vini's Logbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="toprow">
+      <div class="brand"><i>●</i> Logbook</div>
+      <div class="tabs" role="tablist">
+        <button id="tab-today" role="tab" aria-selected="true">Today</button>
+        <button id="tab-progress" role="tab" aria-selected="false">Progress</button>
+      </div>
+    </div>
+    <div class="datebar" id="datebar">
+      <button class="iconbtn" id="prev" aria-label="Previous day">‹</button>
+      <div class="d"><b id="dateMain"></b><small id="dateSub"></small></div>
+      <div class="ring" title="Sections logged">
+        <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle class="track" cx="22" cy="22" r="18" fill="none" stroke-width="4"/><circle class="arc" id="ringArc" cx="22" cy="22" r="18" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 200"/></svg>
+        <span id="ringNum" aria-label="sections logged">0</span>
+      </div>
+      <button class="iconbtn" id="next" aria-label="Next day">›</button>
+    </div>
+    <div class="status" id="status">Loading…</div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <main id="view-today" class="wrap">
+    <div class="hero">
+      <div class="kicker" id="kicker"></div>
+      <h1 id="heroTitle"></h1>
+      <p id="heroLine"></p>
+    </div>
+
+    <section class="card">
+      <div class="sechead"><h2>Gym <span class="ok" id="ok-gym" hidden>logged</span></h2><span class="total" id="gymTotal"></span></div>
+      <span class="lbl">Workout</span>
+      <div class="chips" id="treino"></div>
+      <button class="loadlast" id="loadLast" hidden></button>
+      <div class="colhead" id="gymHead"><span>Exercise</span><span>kg</span><span>Sets</span><span>Reps</span><span></span></div>
+      <div id="gymList" class="list"></div>
+      <div class="actions"><button class="add" id="addGym">+ Add exercise</button></div>
+    </section>
+
+    <section class="card">
+      <div class="sechead"><h2>Work <span class="ok" id="ok-work" hidden>logged</span></h2><span class="total" id="workTotal"></span></div>
+      <div id="workList" class="list"></div>
+      <div class="actions" data-kind="work">
+        <button class="quick" data-min="30">+30m</button><button class="quick" data-min="60">+1h</button><button class="quick" data-min="90">+1h30</button><button class="quick" data-min="120">+2h</button>
+        <button class="add" id="addWork">+ Custom</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="sechead"><h2>Study <span class="ok" id="ok-study" hidden>logged</span></h2><span class="total" id="studyTotal"></span></div>
+      <div id="studyList" class="list"></div>
+      <div class="actions" data-kind="study">
+        <button class="quick" data-min="15">+15m</button><button class="quick" data-min="30">+30m</button><button class="quick" data-min="60">+1h</button>
+        <button class="add" id="addStudy">+ Custom</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="sechead"><h2>Meals <span class="ok" id="ok-meals" hidden>logged</span></h2></div>
+      <div class="meals">
+        <div><label class="lbl" for="m-breakfast">Breakfast</label><input id="m-breakfast" data-meal="breakfast" autocomplete="off"></div>
+        <div><label class="lbl" for="m-lunch">Lunch</label><input id="m-lunch" data-meal="lunch" autocomplete="off"></div>
+        <div><label class="lbl" for="m-dinner">Dinner</label><input id="m-dinner" data-meal="dinner" autocomplete="off"></div>
+        <div><label class="lbl" for="m-snacks">Snacks</label><input id="m-snacks" data-meal="snacks" autocomplete="off"></div>
+      </div>
+      <label class="toggle" for="protein"><input type="checkbox" id="protein"> Hit my protein today</label>
+    </section>
+
+    <section class="card">
+      <div class="sechead"><h2>Journal <span class="ok" id="ok-journal" hidden>logged</span></h2></div>
+      <div class="scale"><span class="lbl">Energy</span><div class="chips" id="energy"></div></div>
+      <div class="scale"><span class="lbl">Mood</span><div class="chips" id="mood"></div></div>
+      <label class="lbl" for="wins">Wins</label>
+      <textarea id="wins" placeholder="What went right today?"></textarea>
+      <label class="lbl" for="notes">Notes</label>
+      <textarea id="notes" placeholder="What I learned, what to fix tomorrow…"></textarea>
+    </section>
+  </main>
+
+  <main id="view-progress" class="wrap" hidden>
+    <div class="hero">
+      <div class="kicker" id="pKicker"></div>
+      <h1 id="pTitle"></h1>
+      <p>Rolling 7-day windows, compared with the 7 days before.</p>
+    </div>
+
+    <section class="card goals">
+      <div class="head"><span class="lbl">Your goals, live · tap one</span></div>
+      <div id="goals"></div>
+    </section>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="card noticed">
+      <span class="tag">✦ What the logbook noticed</span>
+      <p id="insight"></p>
+      <div class="ifoot"><div class="idots" id="idots"></div><button class="pill" id="nextInsight">Show me another</button></div>
+    </section>
+
+    <section class="card">
+      <div class="sechead"><h2>Last 7 days</h2></div>
+      <div class="legend"><span><i style="background:var(--violet)"></i>Work</span><span><i style="background:var(--mint)"></i>Study</span></div>
+      <div class="bars" id="bars"></div>
+      <div class="barlbl" id="barlbl"></div>
+    </section>
+    <section class="card">
+      <div class="sechead"><h2>Logged days · 28d</h2><span class="total" id="k-gym"></span></div>
+      <div class="dots" id="dots"></div>
+    </section>
+    <section class="card">
+      <div class="sechead"><h2>Lifts</h2></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Exercise</th><th class="n">Last</th><th class="n">Best</th><th class="n">4 wk</th></tr></thead><tbody id="lifts"></tbody></table></div>
+    </section>
+    <section class="card">
+      <div class="sechead"><h2>Study topics · 28d</h2></div>
+      <div style="overflow-x:auto"><table><tbody id="topics"></tbody></table></div>
+    </section>
+    <section class="card">
+      <div class="sechead"><h2>Backup</h2></div>
+      <div class="actions"><button class="add" id="exportBtn">Export backup (.json)</button><button class="add" id="importBtn">Import backup</button></div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <div class="hint" id="backupHint">Keeps a copy of every day. Import merges by most recent edit.</div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
