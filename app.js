@@ -5,7 +5,10 @@ const CONFIG={
   name:"Vini",
   targets:{gym:4, work:30, study:5},   // per rolling 7 days: sessions, hours, hours
   repTop:10, kgStep:2.5,                 // reps at/above repTop → suggest +kgStep next time
-  workouts:["A","B","C","D","E","Rest"]
+  workouts:["A","B","C","D","E","Rest"],
+  // Supabase project. Both values are public by design: the database's row-level security
+  // rule ("own rows") is what keeps the data private. Never put the secret/service_role key here.
+  supabase:{url:"https://yzknzznfnfdobcnnrktm.supabase.co", key:"sb_publishable_8j91TLDczcj-lJOTMSecFQ_SjJGkcZm"}
 };
 
 /* ---------- helpers ---------- */
@@ -67,7 +70,7 @@ function save(){
   const startedAt=Date.now(), k=state.date, body=clone(state);
   body.updatedAt=startedAt;
   days[k]=body;
-  if(lsSave()){if(lastEdit<=startedAt)dirty=false;setStatus("Saved on this device","ok")}
+  if(lsSave()){if(lastEdit<=startedAt)dirty=false;setStatus(sync.signedIn?"Saved · syncing…":"Saved on this device","ok");sync.markDirty(k)}
   else setStatus("Couldn't save. Storage is full or blocked.","err");
 }
 function flush(){if(dirty){clearTimeout(saveTimer);save()}}
@@ -417,7 +420,7 @@ $("importFile").onchange=async e=>{
     for(const [k,d] of Object.entries(incoming)){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!d||typeof d!=="object")continue;
       if(days[k]&&(days[k].updatedAt||0)>=(d.updatedAt||0))continue;
-      const body=norm(k,d);body.updatedAt=d.updatedAt||Date.now();days[k]=body;n++;
+      const body=norm(k,d);body.updatedAt=d.updatedAt||Date.now();days[k]=body;n++;sync.markDirty(k);
     }
     lsSave();
     state=norm(cur,days[cur]?clone(days[cur]):null);renderToday();renderProgress();
@@ -479,16 +482,71 @@ function checkBackupReminder(){
   if(!lsGet(LS_FIRST))lsSet(LS_FIRST,String(Date.now()));
   const since=Number(lsGet(LS_EXPORT)||lsGet(LS_FIRST))||Date.now();
   const age=Math.floor((Date.now()-since)/864e5);
-  if(age<REMIND_DAYS){n.hidden=true;return}
+  if(age<REMIND_DAYS||(sync.signedIn&&Date.now()-sync.lastSync<REMIND_DAYS*864e5)){n.hidden=true;return}
   n.hidden=false;
-  n.innerHTML=`${lsGet(LS_EXPORT)?`Last backup was ${age} days ago.`:"You haven't exported a backup yet."} Your entries live only on this device. <button class="pill" id="noticeExport">Export now</button>`;
+  n.innerHTML=`${lsGet(LS_EXPORT)?`Last backup was ${age} days ago.`:"You haven't exported a backup yet."} ${sync.signedIn?"":"Your entries live only on this device. "}<button class="pill" id="noticeExport">Export now</button>`;
   $("noticeExport").onclick=()=>$("exportBtn").click();
 }
 
+/* ---------- sync (Supabase, see sync.js) ---------- */
+const fmtClock=t=>{const d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes())};
+const sync=window.createLogbookSync({
+  url:CONFIG.supabase.url, key:CONFIG.supabase.key,
+  getDays:()=>days,
+  applyRemote(got){
+    const editing=dirty||Date.now()-lastEdit<2500;
+    let touchedCur=false;
+    for(const [k,d] of Object.entries(got)){
+      if(k===cur&&editing)continue;                 // what he's typing right now wins
+      const body=norm(k,d);body.updatedAt=d.updatedAt;days[k]=body;
+      if(k===cur)touchedCur=true;
+    }
+    lsSave();
+    const a=document.activeElement, typing=a&&$("view-today").contains(a)&&a.matches("input,textarea");
+    if(touchedCur&&!typing){state=norm(cur,clone(days[cur]));renderToday()}
+    if(!$("view-progress").hidden)renderProgress();
+  },
+  onStatus(kind){
+    if(dirty)return;                                // "Saving…" takes priority while typing
+    if(kind==="syncing")setStatus("Syncing…");
+    else if(kind==="synced")setStatus("Saved · synced","ok");
+    else if(kind==="offline")setStatus("Saved on this device · syncs when online","ok");
+    else if(kind==="signedout")setStatus("Signed out of sync · saved on this device","err");
+    else setStatus("Saved on this device · sync failed, will retry","err");
+    renderSyncCard();
+  },
+  onAuthChange(){renderSyncCard();checkBackupReminder()}
+});
+function renderSyncCard(){
+  const on=sync.signedIn;
+  $("signinForm").hidden=on;$("syncOn").hidden=!on;
+  $("syncCard").classList.toggle("done",on);
+  if(on){
+    const t=sync.lastSync, today=new Date().toDateString()===new Date(t).toDateString();
+    $("syncWho").innerHTML=`Signed in as <b>${esc(sync.email)}</b>.<br>${t?`Last synced ${today?"today":ddmm(keyOf(new Date(t)))} at ${fmtClock(t)}.`:"Not synced yet."}${sync.pendingCount?` ${sync.pendingCount} day${sync.pendingCount===1?"":"s"} waiting to upload.`:""}`;
+  }
+}
+$("signinForm").onsubmit=async e=>{
+  e.preventDefault();
+  const btn=$("sBtn"),msg=$("sMsg");btn.disabled=true;btn.textContent="Signing in…";msg.textContent="";
+  try{await sync.signIn($("sEmail").value,$("sPass").value);$("sPass").value="";}
+  catch(err){
+    msg.textContent=err instanceof TypeError?"No connection. Try again when you're online."
+      :/invalid/i.test(err.message)?"Wrong email or password.":"Couldn't sign in: "+err.message;
+  }
+  btn.disabled=false;btn.textContent="Sign in";renderSyncCard();
+};
+$("syncNowBtn").onclick=()=>{flush();sync.syncNow()};
+$("signOutBtn").onclick=()=>{
+  if(confirm("Sign out of sync on this device? Your entries stay here; they just stop syncing."))sync.signOut();
+};
+
 /* ---------- boot ---------- */
 days=lsLoad();state=norm(cur,days[cur]?clone(days[cur]):null);renderToday();
-setStatus("Saved on this device","ok");
+setStatus(sync.signedIn?"Syncing…":"Saved on this device","ok");
+renderSyncCard();
 checkBackupReminder();
+sync.syncNow();
 if("serviceWorker" in navigator&&location.protocol!=="file:"){
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }

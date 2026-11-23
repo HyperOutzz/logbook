@@ -155,6 +155,20 @@
       <div class="sechead"><div class="tt"><span class="kick">Learning · 28 days</span><h2>Study topics</h2></div></div>
       <div style="overflow-x:auto"><table><tbody id="topics"></tbody></table></div>
     </section>
+    <section class="card" id="syncCard">
+      <div class="sechead"><div class="tt"><span class="kick">Sync</span><h2>Phone + PC</h2></div><div class="side"><span class="check"></span></div></div>
+      <form id="signinForm" class="signin">
+        <p class="muted">Sign in once on each device. Logging still works with no signal; it syncs when you're back online.</p>
+        <input type="email" id="sEmail" autocomplete="username" inputmode="email" autocapitalize="off" placeholder="Email" required>
+        <input type="password" id="sPass" autocomplete="current-password" placeholder="Password" required>
+        <button class="primary" type="submit" id="sBtn">Sign in</button>
+        <div class="hint" id="sMsg" role="alert"></div>
+      </form>
+      <div id="syncOn" hidden>
+        <p class="muted" id="syncWho"></p>
+        <div class="actions"><button class="pill" id="syncNowBtn">Sync now</button><button class="add" id="signOutBtn">Sign out</button></div>
+      </div>
+    </section>
     <section class="card">
       <div class="sechead"><div class="tt"><span class="kick">Safety</span><h2>Backup</h2></div></div>
       <div class="actions"><button class="add" id="exportBtn">Export backup (.json)</button><button class="add" id="importBtn">Import backup</button></div>
@@ -164,6 +178,7 @@
   </main>
 </div>
 
+<script src="sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

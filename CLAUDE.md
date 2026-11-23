@@ -106,9 +106,22 @@ The earlier serif + monospace look read as "vibe coded"; don't bring it back.
 
 ## Stack (decided 23/11/2026)
 - **PWA**, not a native app (single user). Can be wrapped with Capacitor later if he wants the App Store.
-- **Sync backend: Supabase** (free tier). Sign-in with a typed 6-digit email code, not a magic link:
-  a Home Screen PWA on iOS has separate storage from Safari, so a link would sign in Safari, not the app.
-- **Code lives on GitHub**; hosting TBD (GitHub Pages or Cloudflare Pages, both free).
+- **Sync backend: Supabase** (free tier), project `yzknzznfnfdobcnnrktm`. URL + publishable key live in
+  `CONFIG.supabase` (public by design; never put the secret/service_role key in the app).
+- **Sign-in: email + password.** No magic links (an iOS Home Screen PWA has separate storage from Safari,
+  so a link signs in Safari, not the app) and no email codes (editing Supabase email templates needs custom SMTP).
+  His user was created in the dashboard with "Auto Confirm"; public sign-ups are turned off.
+- **Code lives on GitHub** (`HyperOutzz/logbook`), hosted on GitHub Pages: https://hyperoutzz.github.io/logbook/
+
+### Sync design (`sync.js`, no library, plain fetch)
+- Table `public.days(user_id uuid default auth.uid(), date text, data jsonb, updated_at bigint, pk(user_id,date))`,
+  RLS policy "own rows", and trigger `keep_newest` that refuses to overwrite a row with an older `updated_at`.
+- Local save always comes first. Each saved day is added to a "pending" set in localStorage until uploaded.
+- Cycle: GET `date,updated_at` for all rows (tiny) → download days newer on the server → upload days newer
+  locally (upsert, `on_conflict=user_id,date`). Newer `updatedAt` wins per day.
+- Runs on open, 1,5s after each save, when the connection returns, when the app comes back to the foreground,
+  and every 2 min while open. The day being edited right now is never overwritten by a download.
+- Session (access + refresh token) kept in `localStorage["logbook-session"]`, refreshed silently.
 
 ### Original stack notes
 - **Milestone 1–2:** plain HTML/CSS/JS, no build step, no framework. Easy for him to read.
@@ -127,7 +140,10 @@ The earlier serif + monospace look read as "vibe coded"; don't bring it back.
 ## Status
 - Milestone 1 (port) and 2 (PWA: manifest, icons, `sw.js`, offline, 14-day backup reminder) done 23/11/2026.
   Bump `VERSION` in `sw.js` whenever app files change, or phones keep the old cached copy.
-- Next: deploy, then Milestone 3 (Supabase sync).
+- Deployed to GitHub Pages. Redesign + subtle motion done.
+- Milestone 3 (Supabase sync) built 23/11/2026 and tested against a mock Supabase with two simulated devices
+  (sign-in, first upload, cross-device edit, offline edit then reconnect, token refresh, sign out).
+  Real-world check on his iPhone + PC still pending.
 
 ## Build order
 1. **Port** the prototype into the file structure above. Same features, same look,

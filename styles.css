@@ -145,6 +145,18 @@ textarea{resize:vertical;min-height:76px;line-height:1.45}
 .toggle input{width:22px;height:22px;min-height:0;accent-color:var(--good)}
 .scale{display:flex;flex-direction:column;gap:8px}
 
+/* ---------- sync card ---------- */
+.signin{display:flex;flex-direction:column;gap:8px}
+.muted{margin:0;color:var(--muted);font-size:14px}
+.muted b{color:var(--fg);font-weight:600}
+#syncOn{display:flex;flex-direction:column;gap:12px}
+#syncCard .check{display:none}
+#syncCard.done .check{display:grid}
+#syncCard.done .kick::after{content:" · On"}
+.primary{border:0;background:var(--accent);color:var(--on-accent);font:700 15px var(--body);min-height:48px;border-radius:999px;cursor:pointer;
+  transition:transform .12s var(--ease),opacity .2s}
+.primary:active{transform:scale(.97)} .primary:disabled{opacity:.6}
+
 /* ---------- progress ---------- */
 .goals{padding:14px 14px 4px;gap:0}
 .goals .head{padding:0 0 4px}
