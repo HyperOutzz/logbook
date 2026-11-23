@@ -74,7 +74,8 @@ function renderDone(){
   const done=SECTIONS.filter(s=>s[2](state)), left=SECTIONS.filter(s=>!s[2](state)).map(s=>s[1]);
   $("ringArc").setAttribute("stroke-dasharray",`${(done.length/5*RING_C).toFixed(1)} 200`);
   $("ringNum").textContent=done.length;
-  SECTIONS.forEach(s=>{$("ok-"+s[0]).hidden=!s[2](state)});
+  $("ringArc").closest(".ring").classList.toggle("full",done.length===5);
+  SECTIONS.forEach(s=>{const on=s[2](state),el=$("ok-"+s[0]);el.hidden=!on;el.closest("section").classList.toggle("done",on)});
   $("heroLine").innerHTML=done.length===0?"Nothing logged yet. Start with whatever just happened."
     :done.length===5?"<b>All five logged.</b> That's the day done."
     :`<b>${done.length} of 5 logged</b> · ${esc(listJoin(left))} left.`;
@@ -84,11 +85,11 @@ function renderHero(){
   if(state.date===tk){
     const h=new Date().getHours(), part=h<12?"morning":h<18?"afternoon":"evening";
     $("kicker").textContent=`Logbook · ${wd} ${part}`;
-    $("heroTitle").textContent=`Good ${part}, ${CONFIG.name}.`;
+    $("heroTitle").innerHTML=`Good ${part},<br><span>${esc(CONFIG.name)}.</span>`;
   }else{
     const n=dayDiff(tk,state.date);
     $("kicker").textContent=n===1?"Logbook · yesterday":`Logbook · ${n} days ago`;
-    $("heroTitle").textContent=`${wd}, ${ddmm(state.date)}.`;
+    $("heroTitle").innerHTML=`${wd},<br><span>${ddmm(state.date)}.</span>`;
   }
 }
 
@@ -302,7 +303,7 @@ function renderProgress(){
   const tk=todayKey(),T=CONFIG.targets;
   const loggedTotal=Object.keys(days).filter(k=>hasData(days[k])).length;
   $("pKicker").textContent=`Your progress · ${loggedTotal} day${loggedTotal===1?"":"s"} of data`;
-  $("pTitle").textContent=`Here's your week, ${CONFIG.name}.`;
+  $("pTitle").innerHTML=`Here's your week,<br><span>${esc(CONFIG.name)}.</span>`;
 
   // goals
   const series=[5,4,3,2,1,0].map(i=>windowStats(addDays(tk,-7*i)));
@@ -417,6 +418,25 @@ $("importFile").onchange=async e=>{
   }catch(err){$("backupHint").textContent="That file couldn't be read as a logbook backup."}
   e.target.value="";
 };
+
+/* ---------- theme: auto (follows the phone) → dark → light ---------- */
+const THEMES=["auto","dark","light"], LS_THEME="logbook-theme";
+const THEME_ICON={
+  auto:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  dark:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+  light:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+};
+function applyTheme(t){
+  if(!THEMES.includes(t))t="auto";
+  if(t==="auto")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t;
+  const b=$("themeBtn");b.innerHTML=THEME_ICON[t];
+  b.setAttribute("aria-label",`Theme: ${t}. Tap to change.`);b.title=`Theme: ${t[0].toUpperCase()+t.slice(1)}`;
+  requestAnimationFrame(()=>{const m=document.querySelector('meta[name="theme-color"]');
+    if(m)m.content=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()||"#060B1E"});
+}
+let theme=lsGet(LS_THEME)||"auto";
+applyTheme(theme);
+$("themeBtn").onclick=()=>{theme=THEMES[(THEMES.indexOf(theme)+1)%THEMES.length];lsSet(LS_THEME,theme);applyTheme(theme)};
 
 /* ---------- tabs ---------- */
 function tab(which){

@@ -1,7 +1,7 @@
 /* Offline cache for the Logbook.
    App files: served from cache first, then refreshed in the background ("stale-while-revalidate"),
    so the app opens instantly with no signal. Bump VERSION when you change files to force a clean update. */
-const VERSION = "logbook-v1";
+const VERSION = "logbook-v2";
 const APP_FILES = ["./", "index.html", "styles.css", "app.js", "manifest.json",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 

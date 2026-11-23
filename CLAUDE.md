@@ -86,13 +86,17 @@ enough data, and is tied to a goal. Current rules (last 42 days unless noted):
 Tone: short, direct, specific numbers, a little encouraging. Never preachy.
 Add rules here when you add them in code.
 
-## Design direction
-Reference: a "personal dashboard with Claude" TikTok (Vitality-style). Keep this feel:
-- **Dark-first** (near-black blue `#0B0E14`), light theme follows the phone setting.
-- **Editorial type:** big italic serif for greetings and section titles (Instrument Serif),
-  small uppercase monospace for labels and numbers (JetBrains Mono), clean sans for body (Figtree).
-- **Color means something:** mint = good / rising, amber = slipping / attention,
-  violet = the logbook "talking" (insights, load-last suggestions). No other accent colors.
+## Design direction (updated 23/11/2026)
+Reference: brez-challenge.vercel.app (deep navy, heavy tight grotesk, blue accent, green "done").
+The earlier serif + monospace look read as "vibe coded"; don't bring it back.
+- **Themes:** dark by default (navy `#060B1E`). Header button cycles Auto (follows phone) → Dark → Light,
+  saved in `localStorage["logbook-theme"]`, applied by an inline script in `<head>` before paint.
+- **Type:** headings Inter Tight 800–900 with tight tracking (≈ -0.035em); body Inter;
+  labels are small uppercase Inter 700 with wide tracking (0.12–0.16em). Numbers use tabular figures. No mono, no serif.
+- **Cards:** 2px blue line on top, a numbered kicker ("01 · Train") above a heavy title.
+  When a section counts as logged, the card turns green: green top line and border, "· Done" on the kicker, check circle.
+- **Color means something:** blue = primary / the logbook talking (buttons, insights, load-last);
+  green = done / good / rising; amber = slipping / attention. Nothing else.
 - Calm and sparse. One insight at a time, not a wall of stats.
 
 ## Stack (decided 23/11/2026)
