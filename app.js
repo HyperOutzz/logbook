@@ -23,6 +23,10 @@ const ddmm=k=>{const d=fromKey(k);return pad(d.getDate())+"/"+pad(d.getMonth()+1
 const ddmmyyyy=k=>ddmm(k)+"/"+fromKey(k).getFullYear();
 const WD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* motion: restart a CSS animation class on an element (skipped if the phone asks for reduced motion) */
+const reduceMotion=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+function play(el,cls){if(!el||reduceMotion())return;el.classList.remove("enter","enter-x","turn");void el.offsetWidth;el.classList.add(cls)}
+let newRow=null; // which list just got a row added, so only that row animates in
 const listJoin=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
 const blank=k=>({date:k,treino:"",gym:[],work:[],study:[],meals:{breakfast:"",lunch:"",dinner:"",snacks:""},protein:false,energy:0,mood:0,wins:"",notes:""});
 const norm=(k,d)=>Object.assign(blank(k),d||{},{date:k,meals:Object.assign(blank(k).meals,(d&&d.meals)||{})});
@@ -147,6 +151,7 @@ function renderGym(){
     s.oninput=()=>{g.sets=s.value;scheduleSave();renderTotals()};
     r.oninput=()=>{g.reps=r.value;scheduleSave()};
     wrap.querySelector(".del").onclick=()=>{state.gym.splice(i,1);scheduleSave();renderGym();renderTotals();renderLoadLast()};
+    if(newRow==="gym"&&i===state.gym.length-1)wrap.className="row-new";
     list.appendChild(wrap);
   });
   const all=[];Object.values(days).forEach(d=>(d.gym||[]).forEach(g=>all.push(g.ex)));
@@ -169,6 +174,7 @@ function renderTimeList(kind){
     m.oninput=()=>{it.min=m.value;scheduleSave();renderTotals()};
     t.oninput=()=>{it[c.field]=t.value;scheduleSave()};
     row.querySelector(".del").onclick=()=>{state[kind].splice(i,1);scheduleSave();renderTimeList(kind);renderTotals()};
+    if(newRow===kind&&i===state[kind].length-1)row.classList.add("row-new");
     list.appendChild(row);
   });
   const all=[];Object.values(days).forEach(d=>(d[kind]||[]).forEach(x=>all.push(x[c.field])));
@@ -176,7 +182,7 @@ function renderTimeList(kind){
 }
 function addSession(kind,min){
   state[kind].push({min:min?String(min):"",[TL[kind].field]:""});
-  renderTimeList(kind);renderTotals();scheduleSave();
+  newRow=kind;renderTimeList(kind);newRow=null;renderTotals();scheduleSave();
   const i=state[kind].length-1;$((min?`${kind}-t-`:`${kind}-m-`)+i).focus();
 }
 function renderTotals(){
@@ -214,12 +220,13 @@ document.querySelectorAll("[data-meal]").forEach(i=>i.oninput=()=>{state.meals[i
 $("protein").onchange=e=>{state.protein=e.target.checked;scheduleSave()};
 $("wins").oninput=e=>{state.wins=e.target.value;scheduleSave()};
 $("notes").oninput=e=>{state.notes=e.target.value;scheduleSave()};
-$("addGym").onclick=()=>{state.gym.push({ex:"",kg:"",sets:"",reps:""});renderGym();renderLoadLast();scheduleSave();$("g-ex-"+(state.gym.length-1)).focus()};
+$("addGym").onclick=()=>{state.gym.push({ex:"",kg:"",sets:"",reps:""});newRow="gym";renderGym();newRow=null;renderLoadLast();scheduleSave();$("g-ex-"+(state.gym.length-1)).focus()};
 $("addWork").onclick=()=>addSession("work");
 $("addStudy").onclick=()=>addSession("study");
 document.querySelectorAll(".actions[data-kind] .quick").forEach(b=>b.onclick=()=>addSession(b.parentElement.dataset.kind,Number(b.dataset.min)));
 
-function goto(k){flush();cur=k;state=norm(k,days[k]?clone(days[k]):null);renderToday();window.scrollTo(0,0)}
+function goto(k){flush();const dir=k>cur?1:-1;cur=k;state=norm(k,days[k]?clone(days[k]):null);renderToday();window.scrollTo(0,0);
+  const v=$("view-today");v.style.setProperty("--dx",(dir*14)+"px");play(v,"enter-x")}
 $("prev").onclick=()=>goto(addDays(cur,-1));
 $("next").onclick=()=>{const k=addDays(cur,1);if(k<=todayKey())goto(k)};
 
@@ -392,7 +399,7 @@ function renderInsight(){
   $("idots").innerHTML=insights.map((_,i)=>`<i class="${i===insightIdx?"on":""}"></i>`).join("");
   $("nextInsight").hidden=insights.length<2;
 }
-$("nextInsight").onclick=()=>{insightIdx++;renderInsight()};
+$("nextInsight").onclick=()=>{insightIdx++;renderInsight();play($("insight"),"enter")};
 
 /* ---------- backup ---------- */
 $("exportBtn").onclick=()=>{
@@ -429,14 +436,18 @@ const THEME_ICON={
 function applyTheme(t){
   if(!THEMES.includes(t))t="auto";
   if(t==="auto")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t;
-  const b=$("themeBtn");b.innerHTML=THEME_ICON[t];
+  const b=$("themeBtn");b.innerHTML=THEME_ICON[t];if(b.dataset.ready)play(b.firstChild,"turn");b.dataset.ready="1";
   b.setAttribute("aria-label",`Theme: ${t}. Tap to change.`);b.title=`Theme: ${t[0].toUpperCase()+t.slice(1)}`;
   requestAnimationFrame(()=>{const m=document.querySelector('meta[name="theme-color"]');
     if(m)m.content=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()||"#060B1E"});
 }
 let theme=lsGet(LS_THEME)||"auto";
 applyTheme(theme);
-$("themeBtn").onclick=()=>{theme=THEMES[(THEMES.indexOf(theme)+1)%THEMES.length];lsSet(LS_THEME,theme);applyTheme(theme)};
+$("themeBtn").onclick=()=>{
+  theme=THEMES[(THEMES.indexOf(theme)+1)%THEMES.length];lsSet(LS_THEME,theme);
+  if(document.startViewTransition&&!reduceMotion())document.startViewTransition(()=>applyTheme(theme));
+  else applyTheme(theme);
+};
 
 /* ---------- tabs ---------- */
 function tab(which){
@@ -445,7 +456,15 @@ function tab(which){
   $("view-today").hidden=p;$("view-progress").hidden=!p;$("datebar").hidden=p;
   if(p){flush();renderProgress()}
   window.scrollTo(0,0);
+  placeTabPill();play($(p?"view-progress":"view-today"),"enter");
 }
+function placeTabPill(){
+  const t=document.querySelector(".tabs"),on=t.querySelector('[aria-selected="true"]');
+  t.style.setProperty("--tx",(on.offsetLeft-3)+"px");t.style.setProperty("--tw",on.offsetWidth+"px");
+}
+placeTabPill();
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{placeTabPill();requestAnimationFrame(()=>document.querySelector(".tabs").classList.add("ready"))});
+addEventListener("resize",placeTabPill);
 $("tab-today").onclick=()=>tab("today");$("tab-progress").onclick=()=>tab("progress");
 document.addEventListener("visibilitychange",()=>{if(document.hidden)flush()});
 window.addEventListener("pagehide",flush);

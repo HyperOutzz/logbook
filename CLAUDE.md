@@ -98,6 +98,11 @@ The earlier serif + monospace look read as "vibe coded"; don't bring it back.
 - **Color means something:** blue = primary / the logbook talking (buttons, insights, load-last);
   green = done / good / rising; amber = slipping / attention. Nothing else.
 - Calm and sparse. One insight at a time, not a wall of stats.
+- **Motion: few, purposeful, subtle (≤ 0.35s).** He explicitly doesn't want everything animated.
+  Current set: theme crossfade (View Transitions) + icon turn, sliding tab pill + view fade,
+  day change slides in the direction travelled, ✓ pops when a section is logged, only a newly
+  added row fades in, 0.96 press on buttons. All disabled under `prefers-reduced-motion`.
+  Use `play(el, cls)` in app.js to replay one. Don't add more without a reason.
 
 ## Stack (decided 23/11/2026)
 - **PWA**, not a native app (single user). Can be wrapped with Capacitor later if he wants the App Store.
